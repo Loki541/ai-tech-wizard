@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>AI Tech Wizard v1.3</title>
+<title>AI Tech Wizard v1.3b</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -48,6 +48,7 @@ main {
   border-radius:14px;
   padding:16px;
   min-height:420px;
+  max-height:600px;
   overflow-y:auto;
 }
 
@@ -56,8 +57,8 @@ main {
   line-height:1.45;
 }
 
-.user { color:#9fd1ff; }
-.ai   { color:#e7f0ff; }
+.user { color:#9fd1ff; text-align:right; }
+.ai   { color:#e7f0ff; text-align:left; }
 
 #inputBar {
   display:flex;
@@ -74,6 +75,7 @@ textarea {
   padding:12px;
   resize:none;
   height:70px;
+  font-size:16px;
 }
 
 button {
@@ -99,148 +101,163 @@ button {
   <div id="chat"></div>
 
   <div id="inputBar">
-    <textarea id="input" placeholder="Opisz problem. Możesz pisać ciągle — AI nigdy nie zamyka rozmowy."></textarea>
+    <textarea id="input" placeholder="Opisz problem. AI nigdy nie zamyka rozmowy."></textarea>
     <button onclick="send()">Wyślij</button>
   </div>
 </main>
 
 <script>
 /* =========================
-   CORE MEMORY & STATE
+   MEMORY & STATE
 ========================= */
-
 const memory = {
   history: [],
   hypotheses: [],
-  failedSteps: 0
+  failedSteps: 0,
+  currentStep: 0
 };
 
 /* =========================
-   TYPING ENGINE (FAST)
+   TYPING ENGINE (FAST, STABLE)
 ========================= */
+let typingInProgress = false;
+const chat = document.getElementById("chat");
 
-function typeText(el, text, speed=6) {
+function typeText(el, text, speed=5) {
   el.textContent = "";
   let i = 0;
+  typingInProgress = true;
   const interval = setInterval(() => {
     el.textContent += text[i];
     i++;
-    if (i >= text.length) clearInterval(interval);
+    if (i >= text.length) {
+      clearInterval(interval);
+      typingInProgress = false;
+      chat.scrollTop = chat.scrollHeight;
+    }
   }, speed);
 }
 
 /* =========================
    CHAT HELPERS
 ========================= */
-
 function addMessage(text, cls) {
   const div = document.createElement("div");
   div.className = "msg " + cls;
-  document.getElementById("chat").appendChild(div);
-  document.getElementById("chat").scrollTop = 999999;
-
-  if (cls === "ai") typeText(div, text);
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  if(cls==="ai") typeText(div, text);
   else div.textContent = text;
 }
 
 /* =========================
    DIAGNOSIS ENGINE
 ========================= */
+const predefinedHypotheses = [
+  { title:"GPU / sterowniki", steps:[
+    {step:"Zaktualizuj sterowniki GPU.", result:"PENDING"},
+    {step:"Sprawdź temperaturę GPU pod obciążeniem.", result:"PENDING"},
+    {step:"Uruchom benchmark dla stabilności.", result:"PENDING"}
+  ]},
+  { title:"CPU / thermal", steps:[
+    {step:"Sprawdź temperaturę CPU.", result:"PENDING"},
+    {step:"Upewnij się, że wentylatory działają prawidłowo.", result:"PENDING"},
+    {step:"Rozważ zmianę pasty termicznej.", result:"PENDING"}
+  ]},
+  { title:"RAM / pamięć", steps:[
+    {step:"Uruchom MemTest86.", result:"PENDING"},
+    {step:"Sprawdź, czy wszystkie kości RAM są poprawnie włożone.", result:"PENDING"},
+    {step:"Zamień sloty, jeśli problem występuje dalej.", result:"PENDING"}
+  ]},
+  { title:"System / software", steps:[
+    {step:"Sprawdź procesy w tle.", result:"PENDING"},
+    {step:"Zaktualizuj system operacyjny.", result:"PENDING"},
+    {step:"Uruchom czysty boot systemu.", result:"PENDING"}
+  ]}
+];
 
-function generateHypothesis(input) {
-  const layers = [
-    "sterowniki GPU / CPU",
-    "niestabilność napięć",
-    "throttling termiczny",
-    "błędy systemu operacyjnego",
-    "konflikty aplikacji w tle",
-    "problemy z pamięcią RAM",
-    "mikroprzycięcia I/O dysku",
-    "scheduler systemowy"
-  ];
+/* =========================
+   USER INPUT PARSER
+========================= */
+function analyzeInput(text) {
+  const positive = ["działa","ok","stabilny","temperatura w normie","brak problemu"];
+  const negative = ["nie działa","crash","wysokie temperatury","przycięcia","lagi"];
 
-  const pick = layers[Math.floor(Math.random()*layers.length)];
-
-  return {
-    title: pick,
-    steps: [
-      "Wykonaj test diagnostyczny powiązany z tym obszarem.",
-      "Zanotuj zmiany zachowania systemu.",
-      "Jeżeli brak poprawy — przechodzimy głębiej."
-    ]
-  };
+  const t = text.toLowerCase();
+  if(positive.some(w=>t.includes(w))) return "POSITIVE";
+  if(negative.some(w=>t.includes(w))) return "NEGATIVE";
+  return "UNKNOWN";
 }
 
 /* =========================
-   AI LOGIC LOOP
+   AI LOGIC
 ========================= */
-
-function aiRespond(userInput) {
-  memory.history.push(userInput);
-
-  let response = "";
-
-  if (memory.failedSteps >= 2) {
-    const h = generateHypothesis(userInput);
-    memory.hypotheses.push(h);
-
-    response =
-`Dotychczasowe kroki nie wskazują jednoznacznej przyczyny.
-Tworzę nową hipotezę diagnostyczną:
-
-Obszar: ${h.title}
-
-Kolejne działania:
-1. ${h.steps[0]}
-2. ${h.steps[1]}
-3. ${h.steps[2]}
-
-Po wykonaniu — po prostu napisz, co się zmieniło.`;
-    
-    memory.failedSteps = 0;
-  } else {
-    memory.failedSteps++;
-    response =
-`Na podstawie obecnych informacji wykonaj następujący test:
-
-• Sprawdź zachowanie systemu pod obciążeniem
-• Obserwuj temperatury, taktowania i stabilność
-• Zwróć uwagę na moment wystąpienia problemu
-
-Napisz, co dokładnie się dzieje — idziemy dalej.`;
+function generateNextStep(userText) {
+  const status = analyzeInput(userText);
+  if(memory.hypotheses.length===0){
+    memory.hypotheses.push(JSON.parse(JSON.stringify(predefinedHypotheses[0])));
   }
 
-  addMessage(response, "ai");
+  const currentHypothesis = memory.hypotheses[0];
+
+  if(status==="POSITIVE") {
+    currentHypothesis.steps[memory.currentStep-1].result="OK";
+    memory.currentStep++;
+  } else if(status==="NEGATIVE") {
+    currentHypothesis.steps[memory.currentStep-1].result="FAIL";
+    memory.failedSteps++;
+    memory.currentStep++;
+  } else {
+    return "Nie jestem pewny efektów, podaj więcej szczegółów lub wyniki testu.";
+  }
+
+  if(memory.currentStep >= currentHypothesis.steps.length){
+    if(memory.failedSteps>=2){
+      // przechodzimy do nowej hipotezy
+      const nextIndex = memory.hypotheses.length<predefinedHypotheses.length ? memory.hypotheses.length : 0;
+      memory.hypotheses.push(JSON.parse(JSON.stringify(predefinedHypotheses[nextIndex])));
+      memory.currentStep=0;
+      memory.failedSteps=0;
+      return `Dotychczasowe kroki nie rozwiązały problemu. Przechodzimy do kolejnej hipotezy: ${predefinedHypotheses[nextIndex].title}`;
+    } else {
+      memory.currentStep=0;
+      memory.failedSteps=0;
+      return "Wykonaj kolejne testy w ramach tej hipotezy i napisz dokładne obserwacje.";
+    }
+  }
+
+  return `Hipoteza: ${currentHypothesis.title}\nKrok ${memory.currentStep+1}: ${currentHypothesis.steps[memory.currentStep].step}`;
 }
 
 /* =========================
    SEND HANDLER
 ========================= */
+const inputEl = document.getElementById("input");
 
-function send() {
-  const input = document.getElementById("input");
-  const text = input.value.trim();
-  if (!text) return;
+function send(){
+  const text = inputEl.value.trim();
+  if(!text || typingInProgress) return;
 
-  addMessage(text, "user");
-  input.value = "";
+  addMessage(text,"user");
+  memory.history.push(text);
+  inputEl.value="";
 
-  aiRespond(text);
+  const response = generateNextStep(text);
+  addMessage(response,"ai");
 }
 
 /* =========================
-   🔌 OPENAI / INTERNET READY
+   READY MESSAGE
+========================= */
+addMessage("Witaj w AI Tech Wizard. Opisz problem z komputerem lub grami. AI nigdy nie zamyka rozmowy i generuje kolejne kroki diagnostyczne.", "ai");
+
+/* =========================
+   🔌 OPENAI / WEB HOOK READY
 ========================= */
 /*
-W tym miejscu:
-- podmieniasz aiRespond()
-- wysyłasz memory.history do backendu
-- backend:
-   - OpenAI
-   - wyszukiwanie internetowe
-   - analiza logów
+Tutaj w przyszłości możesz podpiąć OpenAI API lub backend,
+przesyłając memory.history i otrzymując dynamiczne odpowiedzi.
 */
-
 </script>
 
 </body>
