@@ -1,1 +1,1 @@
-# ai-fix-wizard
+# ai-tech-wizard
