@@ -1,1 +1,80 @@
+:root {
+  --bg:#0f1724;
+  --card:#071122;
+  --accent:#1f8ef1;
+  --text:#dfefff;
+}
+
+* { box-sizing:border-box }
+
+body {
+  margin:0;
+  font-family:Inter,system-ui,Arial,sans-serif;
+  background:linear-gradient(180deg,#071026,#050b18);
+  color:var(--text);
+  min-height:100vh;
+}
+
+.hero {
+  text-align:center;
+  padding:30px 20px;
+}
+
+.container {
+  max-width:800px;
+  margin:0 auto;
+  padding:20px;
+}
+
+.chat {
+  background:var(--card);
+  border-radius:10px;
+  padding:16px;
+  min-height:300px;
+  overflow-y:auto;
+}
+
+.msg {
+  margin-bottom:14px;
+  line-height:1.4;
+}
+
+.ai {
+  color:#9dd3ff;
+}
+
+.user {
+  color:#fff;
+  text-align:right;
+}
+
+.input-bar {
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+}
+
+input {
+  flex:1;
+  padding:10px;
+  border-radius:8px;
+  border:none;
+  outline:none;
+  background:#051826;
+  color:var(--text);
+}
+
+button {
+  background:var(--accent);
+  border:none;
+  border-radius:8px;
+  padding:10px 16px;
+  cursor:pointer;
+}
+
+.footer {
+  text-align:center;
+  padding:14px;
+  opacity:.7;
+}
 
