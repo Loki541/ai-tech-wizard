@@ -1,31 +1,247 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Tech Wizard</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>AI Tech Wizard v1.3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root {
+  --bg:#050b16;
+  --panel:#0b1629;
+  --accent:#1f8ef1;
+  --text:#e7f0ff;
+  --muted:#8aa4c4;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  background:radial-gradient(circle at top,#08142c,#030814);
+  font-family:Inter,system-ui,Arial,sans-serif;
+  color:var(--text);
+}
+
+header {
+  padding:32px;
+  text-align:center;
+}
+
+header h1 {
+  margin:0;
+  font-size:2rem;
+}
+
+header p {
+  color:var(--muted);
+}
+
+main {
+  max-width:900px;
+  margin:0 auto;
+  padding:16px;
+}
+
+#chat {
+  background:var(--panel);
+  border-radius:14px;
+  padding:16px;
+  min-height:420px;
+  overflow-y:auto;
+}
+
+.msg {
+  margin-bottom:14px;
+  line-height:1.45;
+}
+
+.user { color:#9fd1ff; }
+.ai   { color:#e7f0ff; }
+
+#inputBar {
+  display:flex;
+  gap:10px;
+  margin-top:14px;
+}
+
+textarea {
+  flex:1;
+  background:#071427;
+  color:var(--text);
+  border:none;
+  border-radius:10px;
+  padding:12px;
+  resize:none;
+  height:70px;
+}
+
+button {
+  background:var(--accent);
+  border:none;
+  border-radius:10px;
+  padding:0 18px;
+  cursor:pointer;
+  color:#031d3a;
+  font-weight:600;
+}
+</style>
 </head>
+
 <body>
 
-<header class="hero">
+<header>
   <h1>AI Tech Wizard</h1>
-  <p>Interaktywny diagnostyk problemów komputerowych</p>
+  <p>Zaawansowany system diagnostyki sprzętu i oprogramowania</p>
 </header>
 
-<main class="container">
-  <div id="chat" class="chat"></div>
+<main>
+  <div id="chat"></div>
 
-  <div class="input-bar">
-    <input id="userInput" placeholder="Napisz odpowiedź..." autocomplete="off">
-    <button id="send">Wyślij</button>
+  <div id="inputBar">
+    <textarea id="input" placeholder="Opisz problem. Możesz pisać ciągle — AI nigdy nie zamyka rozmowy."></textarea>
+    <button onclick="send()">Wyślij</button>
   </div>
 </main>
 
-<footer class="footer">
-  <small>AI Tech Wizard — Interaktywny Diagnosta</small>
-</footer>
+<script>
+/* =========================
+   CORE MEMORY & STATE
+========================= */
 
-<script src="app.js"></script>
+const memory = {
+  history: [],
+  hypotheses: [],
+  failedSteps: 0
+};
+
+/* =========================
+   TYPING ENGINE (FAST)
+========================= */
+
+function typeText(el, text, speed=6) {
+  el.textContent = "";
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += text[i];
+    i++;
+    if (i >= text.length) clearInterval(interval);
+  }, speed);
+}
+
+/* =========================
+   CHAT HELPERS
+========================= */
+
+function addMessage(text, cls) {
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  document.getElementById("chat").appendChild(div);
+  document.getElementById("chat").scrollTop = 999999;
+
+  if (cls === "ai") typeText(div, text);
+  else div.textContent = text;
+}
+
+/* =========================
+   DIAGNOSIS ENGINE
+========================= */
+
+function generateHypothesis(input) {
+  const layers = [
+    "sterowniki GPU / CPU",
+    "niestabilność napięć",
+    "throttling termiczny",
+    "błędy systemu operacyjnego",
+    "konflikty aplikacji w tle",
+    "problemy z pamięcią RAM",
+    "mikroprzycięcia I/O dysku",
+    "scheduler systemowy"
+  ];
+
+  const pick = layers[Math.floor(Math.random()*layers.length)];
+
+  return {
+    title: pick,
+    steps: [
+      "Wykonaj test diagnostyczny powiązany z tym obszarem.",
+      "Zanotuj zmiany zachowania systemu.",
+      "Jeżeli brak poprawy — przechodzimy głębiej."
+    ]
+  };
+}
+
+/* =========================
+   AI LOGIC LOOP
+========================= */
+
+function aiRespond(userInput) {
+  memory.history.push(userInput);
+
+  let response = "";
+
+  if (memory.failedSteps >= 2) {
+    const h = generateHypothesis(userInput);
+    memory.hypotheses.push(h);
+
+    response =
+`Dotychczasowe kroki nie wskazują jednoznacznej przyczyny.
+Tworzę nową hipotezę diagnostyczną:
+
+Obszar: ${h.title}
+
+Kolejne działania:
+1. ${h.steps[0]}
+2. ${h.steps[1]}
+3. ${h.steps[2]}
+
+Po wykonaniu — po prostu napisz, co się zmieniło.`;
+    
+    memory.failedSteps = 0;
+  } else {
+    memory.failedSteps++;
+    response =
+`Na podstawie obecnych informacji wykonaj następujący test:
+
+• Sprawdź zachowanie systemu pod obciążeniem
+• Obserwuj temperatury, taktowania i stabilność
+• Zwróć uwagę na moment wystąpienia problemu
+
+Napisz, co dokładnie się dzieje — idziemy dalej.`;
+  }
+
+  addMessage(response, "ai");
+}
+
+/* =========================
+   SEND HANDLER
+========================= */
+
+function send() {
+  const input = document.getElementById("input");
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessage(text, "user");
+  input.value = "";
+
+  aiRespond(text);
+}
+
+/* =========================
+   🔌 OPENAI / INTERNET READY
+========================= */
+/*
+W tym miejscu:
+- podmieniasz aiRespond()
+- wysyłasz memory.history do backendu
+- backend:
+   - OpenAI
+   - wyszukiwanie internetowe
+   - analiza logów
+*/
+
+</script>
+
 </body>
 </html>
