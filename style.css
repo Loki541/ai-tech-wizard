@@ -1,80 +1,94 @@
 :root {
   --bg:#0f1724;
-  --card:#071122;
+  --card:#0b1220;
   --accent:#1f8ef1;
+  --accent-light:#63b3ed;
   --text:#dfefff;
+  --text-light:#a1c2ff;
 }
 
-* { box-sizing:border-box }
+* { box-sizing: border-box; }
 
 body {
   margin:0;
-  font-family:Inter,system-ui,Arial,sans-serif;
-  background:linear-gradient(180deg,#071026,#050b18);
-  color:var(--text);
-  min-height:100vh;
+  font-family: 'Inter', system-ui, Arial, sans-serif;
+  background: linear-gradient(180deg,#071026,#051025);
+  color: var(--text);
+  min-height: 100vh;
 }
 
 .hero {
-  text-align:center;
-  padding:30px 20px;
+  text-align: center;
+  padding: 40px 20px;
 }
 
 .container {
-  max-width:800px;
-  margin:0 auto;
-  padding:20px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 .chat {
-  background:var(--card);
-  border-radius:10px;
-  padding:16px;
-  min-height:300px;
-  overflow-y:auto;
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
 .msg {
-  margin-bottom:14px;
-  line-height:1.4;
+  margin-bottom: 16px;
+  line-height: 1.5;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-.ai {
-  color:#9dd3ff;
+.msg.show { opacity: 1; }
+
+.msg.ai {
+  color: var(--accent-light);
+  text-align: left;
 }
 
-.user {
-  color:#fff;
-  text-align:right;
+.msg.user {
+  color: var(--text);
+  text-align: right;
 }
 
 .input-bar {
-  display:flex;
-  gap:10px;
-  margin-top:14px;
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 input {
-  flex:1;
-  padding:10px;
-  border-radius:8px;
-  border:none;
-  outline:none;
-  background:#051826;
-  color:var(--text);
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: #051826;
+  color: var(--text);
+  font-size: 16px;
 }
 
 button {
-  background:var(--accent);
-  border:none;
-  border-radius:8px;
-  padding:10px 16px;
-  cursor:pointer;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: var(--accent-light);
 }
 
 .footer {
-  text-align:center;
-  padding:14px;
-  opacity:.7;
+  text-align: center;
+  padding: 16px;
+  opacity: 0.8;
 }
-
